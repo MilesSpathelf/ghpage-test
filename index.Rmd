@@ -1,10 +1,64 @@
 ---
-title: "Index"
+title: "ADFG Escapement Counts"
 author: "Miles Spathelf"
 date: "May 18, 2018"
 output: html_document
 ---
 
-# Hello world
+```{r}
+suppressPackageStartupMessages({
+  library(leaflet)
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  library(DT)
+})
+```
 
-Howdy, howdy, howdy
+Creating dataframe
+
+```{r}
+esc <- read.csv("data/escapement_counts.csv", stringsAsFactors = FALSE)
+```
+
+Calculating median escapement by species
+
+```{r}
+median_esc <- esc %>% 
+  separate(sampleDate, c("Year", "Month", "Day"), sep = "-") %>% 
+  group_by(Species, SASAP.Region, Year, Location) %>% 
+  summarize(escapement = sum(DailyCount)) %>% 
+  group_by(Species) %>% 
+  summarize(median_escapement = median(escapement))
+```
+
+Plotting median escapement by species
+
+```{r}
+ggplot(median_esc, aes(Species, median_escapement)) +
+  geom_col() +
+  coord_flip()
+```
+
+Escapement by unique locations
+
+```{r}
+locations <- esc %>% 
+  distinct(Location, Latitude, Longitude = -abs(Longitude)) %>% 
+  drop_na()
+```
+
+Interactive table of escapement by unique locations
+
+```{r}
+datatable(locations)
+```
+
+Map of unique locations
+
+```{r}
+leaflet(locations) %>% 
+  addTiles() %>% 
+  addMarkers(~ Longitude, ~ Latitude, popup = ~ Location)
+```
+
